@@ -31,7 +31,7 @@ This project backtests a relative momentum anomaly:
 ### 
 
 ###                              **Strategy Equity Curve vs Benchmark**
-                                    ![Equity Curve](hero_equity_curve.png)
+  ![Equity Curve](hero_equity_curve.png)
 
 ### **![][image1]**  
 
