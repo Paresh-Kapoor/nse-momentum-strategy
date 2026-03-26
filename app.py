@@ -11,7 +11,6 @@ import seaborn as sns
 st.set_page_config(page_title="NSE Quant Dashboard", layout="wide")
 
 st.title("📈 NSE Stock Market Analytics & Momentum Strategy")
-# 
 st.markdown("**Developed by: Paresh Kapoor | Aspiring Data Scientist & Quant**")
 st.markdown("---")
 
@@ -59,7 +58,7 @@ if selected_stocks:
     
     tab1, tab2, tab3 = st.tabs(["📈 Price Performance", "🛡️ Risk Metrics & Backtest", "🔥 Correlation Heatmap"])
 
-    # --- TAB 1: PRICE PERFORMANCE ---
+    #  TAB 1: PRICE PERFORMANCE 
     with tab1:
         st.subheader("Normalized Price Performance (Base 100)")
         st.markdown("This chart normalizes all selected stocks to a base value of 100 on the start date, allowing for an 'apples-to-apples' growth comparison.")
@@ -68,13 +67,14 @@ if selected_stocks:
         # Streamlit's native interactive line chart
         st.line_chart(normalized_df)
 
-    #  TAB 2: RISK METRICS & BACKTEST 
+    # TAB 2: RISK METRICS & BACKTEST 
     with tab2:
         st.subheader("Top 3 Cross-Sectional Momentum vs NIFTY 50")
         
         # Recalculate Strategy Dynamically based on selected dates/stocks
         stock_prices = df_close.drop(columns=['^NSEI'])
         momentum_63d = stock_prices.pct_change(63)
+        # Using 'BME' (Business Month End) which is the updated pandas string replacing 'BM'
         rebalance_dates = stock_prices.resample('BME').last().index
         strategy_returns = pd.Series(0.0, index=daily_returns.index)
 
@@ -98,37 +98,44 @@ if selected_stocks:
         cumulative_strategy = (1 + strategy_returns).cumprod() * 100
         cumulative_nifty = (1 + nifty_returns).cumprod() * 100
 
-        # Plotly/Streamlit native columns for metrics
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**Strategy Cumulative Growth**")
-            st.line_chart(cumulative_strategy, color="#1f77b4")
-        with col2:
-            st.markdown("**NIFTY 50 Benchmark Growth**")
-            st.line_chart(cumulative_nifty, color="#7f7f7f")
+        st.markdown("**Cumulative Growth: Strategy vs NIFTY 50 Benchmark**")
+        combined_growth = pd.DataFrame({
+            "Momentum Strategy": cumulative_strategy,
+            "NIFTY 50 Benchmark": cumulative_nifty
+        })
+        st.line_chart(combined_growth, color=["#1f77b4", "#7f7f7f"])
 
         # Quick Metrics Table
         st.markdown("### 📊 Performance Summary")
         
         def calc_cagr(ret):
-            if len(ret) == 0: 
-                return 0.0
             return ((1 + ret).cumprod().iloc[-1] ** (252 / len(ret))) - 1
             
         def calc_sharpe(ret):
-            if len(ret) == 0 or ret.std() == 0: 
-                return 0.0
             return ((ret.mean() * 252) - 0.065) / (ret.std() * np.sqrt(252))
 
+        def calc_max_drawdown(ret):
+            cumulative = (1 + ret).cumprod()
+            rolling_peak = cumulative.cummax()
+            drawdown = (cumulative - rolling_peak) / rolling_peak
+            return drawdown.min()
+
         metrics_data = {
-            "Metric": ["CAGR", "Sharpe Ratio (6.5% Risk Free)"],
-            "Momentum Strategy": [f"{calc_cagr(strategy_returns)*100:.2f}%", f"{calc_sharpe(strategy_returns):.2f}"],
-            "NIFTY 50 Benchmark": [f"{calc_cagr(nifty_returns)*100:.2f}%", f"{calc_sharpe(nifty_returns):.2f}"]
+            "Metric": ["CAGR", "Sharpe Ratio (6.5% Risk Free)", "Max Drawdown"],
+            "Momentum Strategy": [
+                f"{calc_cagr(strategy_returns)*100:.2f}%", 
+                f"{calc_sharpe(strategy_returns):.2f}",
+                f"{calc_max_drawdown(strategy_returns)*100:.2f}%"
+            ],
+            "NIFTY 50 Benchmark": [
+                f"{calc_cagr(nifty_returns)*100:.2f}%", 
+                f"{calc_sharpe(nifty_returns):.2f}",
+                f"{calc_max_drawdown(nifty_returns)*100:.2f}%"
+            ]
         }
         st.table(pd.DataFrame(metrics_data).set_index("Metric"))
 
-    # TAB 3: CORRELATION HEATMAP 
+    #  TAB 3: CORRELATION HEATMAP 
     with tab3:
         st.subheader("Daily Returns Correlation Heatmap")
         st.markdown("Darker red means stocks move together. Darker blue means they move oppositely.")
